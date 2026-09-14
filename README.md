@@ -23,13 +23,13 @@ npm install @tetherto/wdk-wallet-ton-gasless
 
 ## Quick Start
 
-> **Existing wallets:** `getAccount(index)` changed its default derivation in `v1.0.0-beta.5`, from `m/44'/607'/0'/0/{index}` to `m/44'/607'/{index}'`. The same seed therefore produces different addresses after upgrading from `v1.0.0-beta.4` or earlier. Use `getAccountByPath()` with the old path to reopen a legacy account; see [Configuration](https://docs.wdk.tether.io/sdk/wallet-modules/wallet-ton-gasless/configuration) for migration details.
+> **Existing wallets:** `getAccount(index)` changed its default derivation in `v1.0.0-beta.5`, from `m/44'/607'/0'/0/{index}` to `m/44'/607'/{index}'`. The same seed therefore produces different addresses after upgrading from `v1.0.0-beta.4` or earlier. Use `getAccountByPath("0'/0/0")` to reopen the old account at index `0`; see [Configuration](https://docs.wdk.tether.io/sdk/wallet-modules/wallet-ton-gasless/configuration) for migration details.
 
-Provide a TON Center client for chain queries, a TON API client for gasless estimation and relay, and the Jetton master contract used to pay transfer fees. Add `secretKey` to either client configuration from secure runtime configuration when your provider requires one.
+Provide a TON Center JSON-RPC client for chain queries, a TON API client for gasless estimation and relay, and a paymaster Jetton supported by the service's [gasless configuration](https://docs.tonapi.io/tonapi/rest-api/gasless). Use the TON API origin without `/v2`; the client adds that prefix. Add `secretKey` to either client configuration from secure runtime configuration when your provider requires one.
 
 > Gasless operations support Jetton transfers through `transfer()` only. Native `sendTransaction()`, `quoteSendTransaction()`, and `signTransaction()` are not supported.
 >
-> The mnemonic below is public test data; never use it to hold funds. Keep seed phrases and API keys out of source control. Replace every `EQ...` placeholder with a valid address for the selected network. Before transferring, verify the token, recipient, and paymaster addresses; check the account's paymaster-token balance; and set `transferMaxFee`. Quoted and charged fees use the paymaster Jetton's base units.
+> The mnemonic below is public test data; never use it to hold funds. Keep seed phrases and API keys out of source control. This example requires configuration: replace every `EQ...` placeholder with a valid mainnet address, and adjust the amount and fee cap for the selected Jettons' decimals. Before transferring, verify the token, recipient, and paymaster addresses; check the account's transfer-token and paymaster-token balances; and set `transferMaxFee`. Quoted and charged fees use the paymaster Jetton's base units.
 
 ```javascript
 import WalletManagerTonGasless from '@tetherto/wdk-wallet-ton-gasless'
@@ -41,7 +41,7 @@ const wallet = new WalletManagerTonGasless(seedPhrase, {
     url: 'https://toncenter.com/api/v2/jsonRPC',
   },
   tonApiClient: {
-    url: 'https://tonapi.io/v2',
+    url: 'https://tonapi.io',
   },
   paymasterToken: {
     address: 'EQ...', // Paymaster Jetton master contract address
@@ -77,6 +77,7 @@ try {
 - **Gasless Jetton Transfers**: Estimate and relay Jetton transfers through TON API's gasless service
 - **Paymaster Fee Controls**: Pay commissions in a configured Jetton and reject transfers above `transferMaxFee`
 - **TON and Jetton Balances**: Query native TON, Jetton, and paymaster-token balances
+- **Transaction Tracking**: Look up transactions with `getTransaction()` and poll for finality with `waitForTransaction()`
 - **Provider Failover**: Supply arrays of TON Center and TON API clients with configurable retries
 - **Message Signing**: Sign messages and verify signatures with TON accounts
 - **Read-Only Accounts**: Monitor TON wallets from public keys without private-key access
@@ -85,8 +86,8 @@ try {
 ## Compatibility
 
 - **TON Mainnet**
-- **TON Testnet**
-- **TON Center-compatible clients** for chain queries
+- **TON Testnet** with matching TON Center and TON API testnet clients and a supported paymaster Jetton. `getFeeRates()` still returns mainnet fee rates, regardless of the configured clients.
+- **TON Center-compatible clients** with JSON-RPC for chain queries and `/api/v3` on the same origin for transaction lookup
 - **TON API endpoints with gasless support** for fee estimation and transaction relay
 - **Node.js and Bare runtimes**
 
@@ -97,7 +98,7 @@ try {
 | Overview | Module overview and feature summary | [Wallet TON Gasless Overview](https://docs.wdk.tether.io/sdk/wallet-modules/wallet-ton-gasless) |
 | Usage | End-to-end integration walkthrough | [Wallet TON Gasless Usage](https://docs.wdk.tether.io/sdk/wallet-modules/wallet-ton-gasless/usage) |
 | Configuration | TON clients, paymaster token, failover, and fee limits | [Wallet TON Gasless Configuration](https://docs.wdk.tether.io/sdk/wallet-modules/wallet-ton-gasless/configuration) |
-| API Reference | Complete class and type reference | [Wallet TON Gasless API Reference](https://docs.wdk.tether.io/sdk/wallet-modules/wallet-ton-gasless/api-reference) |
+| API Reference | Class, method, and type documentation | [Wallet TON Gasless API Reference](https://docs.wdk.tether.io/sdk/wallet-modules/wallet-ton-gasless/api-reference) |
 
 ## Community
 
