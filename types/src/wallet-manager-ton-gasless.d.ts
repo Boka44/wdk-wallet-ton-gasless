@@ -18,9 +18,9 @@ export default class WalletManagerTonGasless extends WalletManager {
      * open two clients for the same endpoint.
      *
      * @protected
-     * @type {TonClient | undefined}
+     * @type {TonClient}
      */
-    protected _tonClient: TonClient | undefined;
+    protected _tonClient: TonClient;
     /**
      * The ton api client. Shared with every account this manager creates.
      *

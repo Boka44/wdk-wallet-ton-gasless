@@ -52,7 +52,7 @@ export default class WalletManagerTonGasless extends WalletManager {
      * open two clients for the same endpoint.
      *
      * @protected
-     * @type {TonClient | undefined}
+     * @type {TonClient}
      */
     this._tonClient = WalletAccountReadOnlyTon._buildTonClient(config)
 
