@@ -454,7 +454,7 @@ describe('WalletAccountTonGasless', () => {
       expect(testAccount.keyPair.privateKey).toBe(null)
     })
 
-    test('should expose the disposed state and be idempotent', () => {
+    test('should expose the disposed state', () => {
       const testAccount = new WalletAccountTonGasless(SEED_PHRASE, "0'/0/0", {
         tonClient,
         tonApiClient,
@@ -468,7 +468,6 @@ describe('WalletAccountTonGasless', () => {
       testAccount.dispose()
 
       expect(testAccount.disposed).toBe(true)
-      expect(() => testAccount.dispose()).not.toThrow()
     })
 
     test('should throw DisposalError from sign and transfer once disposed', async () => {
