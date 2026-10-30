@@ -19,7 +19,7 @@ import { WalletAccountReadOnlyTon } from '@tetherto/wdk-wallet-ton'
 
 import FailoverProvider from '@tetherto/wdk-failover-provider'
 
-import { Address, beginCell, internal, toNano, storeMessage } from '@ton/ton'
+import { Address, beginCell, Cell, internal, toNano, storeMessage } from '@ton/ton'
 
 import { TonApiClient } from '@ton-api/client'
 
@@ -298,8 +298,7 @@ export default class WalletAccountReadOnlyTonGasless extends WalletAccountReadOn
 
     const { relayAddress } = await this._tonApiClient.gasless.gaslessConfig()
 
-    const jettonWalletAddress =
-      await this._tonReadOnlyAccount._getJettonWalletAddress(token)
+    const jettonWalletAddress = await this._getJettonWalletAddressForMaster(token)
 
     const queryId = this._tonReadOnlyAccount._generateQueryId()
 
@@ -455,22 +454,51 @@ export default class WalletAccountReadOnlyTonGasless extends WalletAccountReadOn
   }
 
   /**
-   * Returns the Jetton wallet address for the account and a specific master.
+   * Returns the verified Jetton wallet address for the account and a specific master.
    *
    * @private
    * @param {string} masterAddress - The Jetton master address.
    * @returns {Promise<Address>} The account's Jetton wallet address.
+   * @throws {Error} If the reported address is not the account's wallet for this Jetton.
    */
   async _getJettonWalletAddressForMaster (masterAddress) {
-    const { stack } = await this._tonReadOnlyAccount._tonClient.callGetMethod(
-      Address.parse(masterAddress),
-      'get_wallet_address',
-      [{
-        type: 'slice',
-        cell: beginCell().storeAddress(this._tonReadOnlyAccount._wallet.address).endCell()
-      }]
-    )
+    const invalidJettonWallet = 'The Jetton master returned an invalid Jetton wallet address.'
+    const tonClient = this._tonReadOnlyAccount._tonClient
+    const owner = this._tonReadOnlyAccount._wallet.address
+    const master = Address.parse(masterAddress)
 
-    return stack.readAddress()
+    const { stack } = await tonClient.runMethod(master, 'get_wallet_address', [{
+      type: 'slice',
+      cell: beginCell().storeAddress(owner).endCell()
+    }])
+
+    const jettonWalletAddress = stack.readAddress()
+
+    const { code } = await tonClient.getContractState(jettonWalletAddress)
+
+    if (!code) {
+      throw new Error('The account has no Jetton wallet deployed for this token.')
+    }
+
+    const { stack: masterStack } = await tonClient.runMethod(master, 'get_jetton_data', [])
+
+    // total_supply, mintable, admin_address, jetton_content, jetton_wallet_code
+    masterStack.skip(4)
+    const expectedCode = masterStack.readCell()
+
+    if (!Cell.fromBoc(code)[0].hash().equals(expectedCode.hash())) {
+      throw new Error(invalidJettonWallet)
+    }
+
+    const { stack: walletStack } = await tonClient.runMethod(jettonWalletAddress, 'get_wallet_data', [])
+
+    // balance, owner_address, jetton_master_address, jetton_wallet_code
+    walletStack.skip(1)
+
+    if (!walletStack.readAddress().equals(owner) || !walletStack.readAddress().equals(master)) {
+      throw new Error(invalidJettonWallet)
+    }
+
+    return jettonWalletAddress
   }
 }
